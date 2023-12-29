@@ -429,7 +429,12 @@ public class CSVParserTest {
     @Test
     public void testDuplicateHeadersAllowedByDefault() throws Exception {
         try (CSVParser parser = CSVParser.parse("a,b,a\n1,2,3\nx,y,z", CSVFormat.DEFAULT.withHeader())) {
-            // noop
+            final Map<String, Integer> headers = parser.getHeaderNames();
+            // Assert that the header mapping has the expected values
+            assertEquals(3, headers.size());
+            assertTrue(headers.containsKey("a"));
+            assertTrue(headers.containsKey("b"));
+            assertTrue(headers.containsKey("c"));
         }
     }
 
@@ -985,17 +990,48 @@ public class CSVParserTest {
     public void testHeaderMissingWithNull() throws Exception {
         final Reader in = new StringReader("a,,c,,e\n1,2,3,4,5\nv,w,x,y,z");
         try (final CSVParser parser = CSVFormat.DEFAULT.withHeader().withNullString("").withAllowMissingColumnNames().parse(in)) {
-            parser.iterator();
+            final Iterator<CSVRecord> records = parser.iterator();
+
+            final CSVRecord firstRecord = records.next();
+            assertThat(firstRecord.get(0), is("a"));
+            assertThat(firstRecord.get(1), is(""));
+            assertThat(firstRecord.get(2), is("c"));
+            assertThat(firstRecord.get(3), is(""));
+            assertThat(firstRecord.get(4), is("e"));
+
+            final CSVRecord secondRecord = records.next();
+            assertThat(secondRecord.get(0), is("1"));
+            assertThat(secondRecord.get(1), is("2"));
+            assertThat(secondRecord.get(2), is("3"));
+            assertThat(secondRecord.get(3), is("4"));
+            assertThat(secondRecord.get(4), is("5"));
         }
     }
 
     @Test
     public void testHeadersMissing() throws Exception {
         try (final Reader in = new StringReader("a,,c,,e\n1,2,3,4,5\nv,w,x,y,z");
-            final CSVParser parser = CSVFormat.DEFAULT.withHeader().withAllowMissingColumnNames().parse(in)) {
-            parser.iterator();
+                final CSVParser parser = CSVFormat.DEFAULT.withHeader().withAllowMissingColumnNames().parse(in)) {
+            final Iterator<CSVRecord> records = parser.iterator();
+
+            final CSVRecord firstRecord = records.next();
+            assertThat(firstRecord.get(0), is("a"));
+            // Verify that ',,c' is treated as one column with empty value
+            assertThat(firstRecord.get(1), is(""));
+            assertThat(firstRecord.get(2), is("c"));
+            // Verify that ',,e' is treated as one column with empty value
+            assertThat(firstRecord.get(3), is(""));
+            assertThat(firstRecord.get(4), is("e"));
+
+            final CSVRecord secondRecord = records.next();
+            assertThat(secondRecord.get(0), is("1"));
+            assertThat(secondRecord.get(1), is("2"));
+            assertThat(secondRecord.get(2), is("3"));
+            assertThat(secondRecord.get(3), is("4"));
+            assertThat(secondRecord.get(4), is("5"));
         }
     }
+
 
     @Test
     public void testHeadersMissingException() {
@@ -1360,12 +1396,25 @@ public class CSVParserTest {
         }
     }
     @Test
-    public void testParseWithQuoteThrowsException() {
+    public void testParseWithQuoteThrowsException() throws IOException {
         final CSVFormat csvFormat = CSVFormat.DEFAULT.withQuote('\'');
-        assertThrows(IOException.class, () -> csvFormat.parse(new StringReader("'a,b,c','")).nextRecord());
-        assertThrows(IOException.class, () -> csvFormat.parse(new StringReader("'a,b,c'abc,xyz")).nextRecord());
-        assertThrows(IOException.class, () -> csvFormat.parse(new StringReader("'abc'a,b,c',xyz")).nextRecord());
+
+        final CSVParser parser = csvFormat.parse(new StringReader("'a,b,c','"));
+        assertThrows(IOException.class, parser::nextRecord);
+
+        parser.close();
+
+        parser = csvFormat.parse(new StringReader("'a,b,c'abc,xyz"));
+        assertThrows(IOException.class, parser::nextRecord);
+
+        parser.close();
+
+        parser = csvFormat.parse(new StringReader("'abc'a,b,c',xyz"));
+        assertThrows(IOException.class, parser::nextRecord);
+
+        parser.close();
     }
+
     @Test
     public void testParseWithQuoteWithEscape() throws IOException {
         final String source = "'a?,b?,c?d',xyz";

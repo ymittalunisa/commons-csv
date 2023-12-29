@@ -171,31 +171,35 @@ final class ExtendedBufferedReader extends BufferedReader {
         if (length == 0) {
             return 0;
         }
-
+    
         final int len = super.read(buf, offset, length);
-
+    
         if (len > 0) {
-
+            int eolCount = 0;
+    
             for (int i = offset; i < offset + len; i++) {
                 final char ch = buf[i];
                 if (ch == LF) {
-                    if (CR != (i > offset ? buf[i - 1] : lastChar)) {
-                        eolCounter++;
-                    }
+                    eolCount++;
                 } else if (ch == CR) {
-                    eolCounter++;
+                    // Handle LF after CR
+                    if (i < offset + len - 1 && buf[i + 1] == LF) {
+                        i++;
+                    }
                 }
             }
-
-            lastChar = buf[offset + len - 1];
-
+    
+            eolCounter += eolCount;
         } else if (len == -1) {
             lastChar = END_OF_STREAM;
+        } else {
+            throw new IOException("Unexpected read length");
         }
-
+    
         position += len;
         return len;
     }
+    
 
     /**
      * Gets the next line, dropping the line terminator(s). This method should only be called when processing a

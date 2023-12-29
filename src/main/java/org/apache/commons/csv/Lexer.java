@@ -219,46 +219,39 @@ final class Lexer implements Closeable {
      * @throws IOException on stream access error.
      */
     Token nextToken(final Token token) throws IOException {
-
         // Get the last read char (required for empty line detection)
         int lastChar = reader.getLastChar();
-
-        // read the next char and set eol
+    
+        // Read the next char and set eol
         int c = reader.read();
         /*
          * Note: The following call will swallow LF if c == CR. But we don't need to know if the last char was CR or LF
          * - they are equivalent here.
          */
         boolean eol = readEndOfLine(c);
-
-        // empty line detection: eol AND (last char was EOL or beginning)
+    
+        // Empty line detection
         if (ignoreEmptyLines) {
             while (eol && isStartOfLine(lastChar)) {
-                // Go on char ahead ...
-                lastChar = c;
+                // Consume empty lines
                 c = reader.read();
                 eol = readEndOfLine(c);
-                // reached the end of the file without any content (empty line at the end)
-                if (isEndOfFile(c)) {
-                    token.type = EOF;
-                    // don't set token.isReady here because no content
-                    return token;
-                }
             }
         }
-
-        // Did we reach EOF during the last iteration already? EOF
-        if (isEndOfFile(lastChar) || !isLastTokenDelimiter && isEndOfFile(c)) {
+    
+        // Handle EOF cases
+        if (isEndOfFile(lastChar) || (isEndOfFile(c) && !isLastTokenDelimiter)) {
             token.type = EOF;
-            // don't set token.isReady here because no content
+            // No need to set isReady as there is no content at EOF
             return token;
         }
-
+    
+        // Read comment lines
         if (isStartOfLine(lastChar) && isCommentStart(c)) {
             final String line = reader.readLine();
             if (line == null) {
                 token.type = EOF;
-                // don't set token.isReady here because no content
+                // No content at EOF
                 return token;
             }
             final String comment = line.trim();
@@ -266,41 +259,40 @@ final class Lexer implements Closeable {
             token.type = COMMENT;
             return token;
         }
-
-        // Important: make sure a new char gets consumed in each iteration
+    
+        // Consume tokens
         while (token.type == INVALID) {
-            // ignore whitespaces at beginning of a token
+            // Ignore whitespace at the beginning of a token
             if (ignoreSurroundingSpaces) {
                 while (Character.isWhitespace((char)c) && !isDelimiter(c) && !eol) {
                     c = reader.read();
                     eol = readEndOfLine(c);
                 }
             }
-
-            // ok, start of token reached: encapsulated, or token
+    
+            // Handle delimiter, EORECORD, encapsulated token, simple token, and EOF scenarios
             if (isDelimiter(c)) {
-                // empty token return TOKEN("")
+                // Empty token: TOKEN("")
                 token.type = TOKEN;
             } else if (eol) {
-                // empty token return EORECORD("")
-                // noop: token.content.append("");
+                // Empty token: EORECORD("")
+                token.content.append("");
                 token.type = EORECORD;
             } else if (isQuoteChar(c)) {
-                // consume encapsulated token
                 parseEncapsulatedToken(token);
             } else if (isEndOfFile(c)) {
-                // end of file return EOF()
-                // noop: token.content.append("");
+                // Empty token: EOF
+                token.content.append("");
                 token.type = EOF;
-                token.isReady = true; // there is data at EOF
+                token.isReady = true; // Detected EOF within token
             } else {
-                // next token must be a simple token
-                // add removed blanks when not ignoring whitespace chars...
                 parseSimpleToken(token, c);
             }
         }
+    
         return token;
     }
+    
 
     /**
      * Parses an encapsulated token.
@@ -329,59 +321,47 @@ final class Lexer implements Closeable {
         // Save current line number in case needed for IOE
         final long startLineNumber = getCurrentLineNumber();
         int c;
+    
         while (true) {
-            c = reader.read();
-
             if (isEscape(c)) {
-                if (isEscapeDelimiter()) {
-                    token.content.append(delimiter);
-                } else {
-                    final int unescaped = readEscape();
-                    if (unescaped == END_OF_STREAM) { // unexpected char after escape
-                        token.content.append((char) c).append((char) reader.getLastChar());
-                    } else {
-                        token.content.append((char) unescaped);
-                    }
-                }
+                // Handle escape sequence
+                handleEscapeSequence(token, c);
             } else if (isQuoteChar(c)) {
+                // Token end: ignore whitespace till delimiter
                 if (isQuoteChar(reader.lookAhead())) {
-                    // double or escaped encapsulator -> add single encapsulator to token
-                    c = reader.read();
-                    token.content.append((char) c);
+                    // Double quote or escaped quote: ignore
                 } else {
-                    // token finish mark (encapsulator) reached: ignore whitespace till delimiter
+                    // End of encapsulated token
                     while (true) {
                         c = reader.read();
-                        if (isDelimiter(c)) {
+                        if (isDelimiter(c) || isEndOfFile(c) || readEndOfLine(c)) {
+                            // Match delimiter or end of file or newline
                             token.type = TOKEN;
                             return token;
-                        }
-                        if (isEndOfFile(c)) {
-                            token.type = EOF;
-                            token.isReady = true; // There is data at EOF
-                            return token;
-                        }
-                        if (readEndOfLine(c)) {
-                            token.type = EORECORD;
-                            return token;
-                        }
-                        if (!Character.isWhitespace((char)c)) {
-                            // error invalid char between token and next delimiter
-                            throw new IOException("Invalid char between encapsulated token and delimiter at line: " +
-                                    getCurrentLineNumber() + ", position: " + getCharacterPosition());
                         }
                     }
                 }
             } else if (isEndOfFile(c)) {
-                // error condition (end of file before end of token)
+                // Error: EOF before token end
                 throw new IOException("(startline " + startLineNumber +
                         ") EOF reached before encapsulated token finished");
             } else {
-                // consume character
+                // Consume character
                 token.content.append((char) c);
             }
         }
     }
+    
+    private void handleEscapeSequence(final Token token, int c) throws IOException {
+        final int unescaped = readEscape();
+        if (unescaped == END_OF_STREAM) {
+            // Unexpected char after escape
+            token.content.append((char) c).append((char) reader.getLastChar());
+        } else {
+            // Valid escape sequence
+            token.content.append((char) unescaped);
+        }
+    }    
 
     /**
      * Parses a simple token.
@@ -404,45 +384,53 @@ final class Lexer implements Closeable {
      *             on stream access error
      */
     private Token parseSimpleToken(final Token token, int ch) throws IOException {
-        // Faster to use while(true)+break than while(token.type == INVALID)
+        // Read tokens until EOF, delimiter, or EORECORD
         while (true) {
+            // Check end of token conditions
             if (readEndOfLine(ch)) {
                 token.type = EORECORD;
-                break;
+                break; // End of token
             }
             if (isEndOfFile(ch)) {
                 token.type = EOF;
                 token.isReady = true; // There is data at EOF
-                break;
+                break; // End of token
             }
             if (isDelimiter(ch)) {
                 token.type = TOKEN;
-                break;
+                break; // End of token
             }
-            // continue
+    
+            // Handle escape sequence or normal character
             if (isEscape(ch)) {
-                if (isEscapeDelimiter()) {
-                    token.content.append(delimiter);
-                } else {
-                    final int unescaped = readEscape();
-                    if (unescaped == END_OF_STREAM) { // unexpected char after escape
-                        token.content.append((char) ch).append((char) reader.getLastChar());
-                    } else {
-                        token.content.append((char) unescaped);
-                    }
-                }
+                readEscapeSequence(token, ch);
             } else {
                 token.content.append((char) ch);
             }
-            ch = reader.read(); // continue
+    
+            // Read next character
+            ch = reader.read();
         }
-
+    
+        // Trim trailing spaces
         if (ignoreSurroundingSpaces) {
             trimTrailingSpaces(token.content);
         }
-
+    
         return token;
     }
+    
+    private void readEscapeSequence(final Token token, int ch) throws IOException {
+        final int unescaped = readEscape();
+        if (unescaped == END_OF_STREAM) {
+            // Unexpected char after escape
+            token.content.append((char) ch).append((char) reader.getLastChar());
+        } else {
+            // Valid escape sequence
+            token.content.append((char) unescaped);
+        }
+    }
+    
 
     /**
      * Greedily accepts \n, \r and \r\n This checker consumes silently the second control-character...
