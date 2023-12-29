@@ -1396,7 +1396,7 @@ public class CSVParserTest {
         }
     }
     @Test
-    public void testParseWithQuoteThrowsException() throws IOException {
+    void testParseWithQuoteThrowsException() throws IOException {
         final CSVFormat csvFormat = CSVFormat.DEFAULT.withQuote('\'');
 
         final CSVParser parser = csvFormat.parse(new StringReader("'a,b,c','"));

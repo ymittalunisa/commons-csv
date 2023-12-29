@@ -179,13 +179,12 @@ final class ExtendedBufferedReader extends BufferedReader {
     
             for (int i = offset; i < offset + len; i++) {
                 final char ch = buf[i];
-                if (ch == LF) {
-                    eolCount++;
-                } else if (ch == CR) {
-                    // Handle LF after CR
+                if (ch == CR) {
                     if (i < offset + len - 1 && buf[i + 1] == LF) {
                         i++;
                     }
+                } else if (ch == LF) {
+                    eolCount++;
                 }
             }
     

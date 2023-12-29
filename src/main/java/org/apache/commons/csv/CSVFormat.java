@@ -2283,54 +2283,48 @@ private boolean isDelimiter(final String text, final int pos, final char[] delim
     }
     
     private boolean checkQuoteCondition(final Object object, final CharSequence charSeq, final boolean newRecord) {
-        boolean quote = false;
-    
+        boolean quote;
         QuoteMode quoteModePolicy = getQuoteMode();
         if (quoteModePolicy == null) {
             quoteModePolicy = QuoteMode.MINIMAL;
         }
     
-        switch (quoteModePolicy) {
-            case ALL:
-            case ALL_NON_NULL:
-                quote = true;
-                break;
-            case NON_NUMERIC:
-                quote = !(object instanceof Number);
-                break;
-            case NONE:
-                return false;
-            case MINIMAL:
-                if (charSeq.length() <= 0) {
-                    if (newRecord) {
-                        quote = true;
-                    }
-                } else {
-                    char c = charSeq.charAt(0);
+        if (quoteModePolicy == QuoteMode.ALL || quoteModePolicy == QuoteMode.ALL_NON_NULL) {
+            quote = true;
+        } else if (quoteModePolicy == QuoteMode.NON_NUMERIC && !(object instanceof Number)) {
+            quote = true;
+        } else if (quoteModePolicy == QuoteMode.NONE) {
+            return false;
+        } else if (quoteModePolicy == QuoteMode.MINIMAL) {
+            if (charSeq.length() == 0) {
+                if (newRecord) {
+                    quote = true;
+                }
+            } else {
+                char c = charSeq.charAt(0);
     
-                    if (c <= COMMENT) {
-                        quote = true;
-                    } else {
-                        for (int pos = 1; pos < charSeq.length(); pos++) {
-                            c = charSeq.charAt(pos);
-                            if (c == LF || c == CR || c == getQuoteCharacter() || c == getEscapeCharacter() || isDelimiter(c, charSeq, pos, getDelimiterString().toCharArray(), getDelimiterLength())) {
-                                quote = true;
-                                break;
-                            }
+                if (c <= Comment || c <= LF || c <= CR) {
+                    quote = true;
+                } else if (charSeq.length() > 1) {
+                    for (int pos = 1; pos < charSeq.length(); pos++) {
+                        c = charSeq.charAt(pos);
+                        if (c == getQuoteCharacter() || c == getEscapeCharacter()) {
+                            quote = true;
+                            break;
                         }
                     }
                 }
+            }
     
-                if (!quote) {
-                    return false;
-                }
-                break;
-            default:
-                throw new IllegalStateException("Unexpected Quote value: " + quoteModePolicy);
+            if (!quote) {
+                return false;
+            }
+        } else {
+            throw new IllegalStateException("Unexpected Quote value: " + quoteModePolicy);
         }
     
         return quote;
-    }
+    }    
     
 
     /**
