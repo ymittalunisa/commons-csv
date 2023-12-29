@@ -858,10 +858,10 @@ public final class CSVFormat implements Serializable {
          * @see CSVFormat#POSTGRESQL_CSV
          * @since 1.5
          */
-        PostgreSQPOSTGRESQL_CSVLCsv(CSVFormat.POSTGRESQL_CSV),
+        POSTGRESQL_CSV(CSVFormat.POSTGRESQL_CSV),
 
         /**
-         * @see CSVFormat#POSTGRESQL_CSV
+         * @see CSVFormat#POSTGRESQL_TEXT
          */
         POSTGRESQL_TEXT(CSVFormat.POSTGRESQL_TEXT),
 
@@ -2236,27 +2236,6 @@ public final class CSVFormat implements Serializable {
     
         return false;
     }
-    
-
-private void writeEscapedCharacter(final Appendable appendable, final char c) throws IOException {
-    append(escape, appendable);
-    append(c, appendable);
-}
-
-private void writeSegment(final Appendable appendable, final StringBuilder builder, final int start, final int pos) throws IOException {
-    append(builder, start, pos, appendable);
-}
-
-private boolean isDelimiter(final String text, final int pos, final char[] delim, final int delimLength) {
-    for (int i = 0; i < delimLength; i++) {
-        if (text.charAt(pos) == delim[i]) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 
     /*
      * Note: must only be called if quoting is enabled, otherwise will generate NPE
