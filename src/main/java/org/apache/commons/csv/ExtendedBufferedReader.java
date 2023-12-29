@@ -174,7 +174,7 @@ final class ExtendedBufferedReader extends BufferedReader {
     
         final int len = super.read(buf, offset, length);
     
-        int eolCount;
+        int eolCount = 0;
 
         if (len > 0) {
             for (int i = offset; i < offset + len; i++) {
@@ -187,14 +187,13 @@ final class ExtendedBufferedReader extends BufferedReader {
                     eolCount++;
                 }
             }
-            eolCounter += eolCount;
-        }
- else if (len == -1) {
+        } else if (len == -1) {
             lastChar = END_OF_STREAM;
         } else {
             throw new IOException("Unexpected read length");
         }
-    
+        eolCounter += eolCount;
+        
         position += len;
         return len;
     }
