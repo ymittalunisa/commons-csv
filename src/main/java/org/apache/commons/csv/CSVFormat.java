@@ -2287,7 +2287,7 @@ private boolean isDelimiter(final String text, final int pos, final char[] delim
                 quoteModePolicy == QuoteMode.NON_NUMERIC && !(charSeq instanceof Number);
     }
     
-    private boolean checkQuoteCondition(final Object object, final CharSequence charSeq, final boolean newRecord) {
+    private boolean checkQuoteCondition(final CharSequence charSeq, final boolean newRecord) {
         if (charSeq.length() == 0) {
             return newRecord;
         }
