@@ -2282,48 +2282,26 @@ private boolean isDelimiter(final String text, final int pos, final char[] delim
         }
     }
     
+    private boolean shouldQuote(QuoteMode quoteModePolicy, CharSequence charSeq) {
+        return quoteModePolicy == QuoteMode.ALL || quoteModePolicy == QuoteMode.ALL_NON_NULL ||
+                quoteModePolicy == QuoteMode.NON_NUMERIC && !(charSeq instanceof Number);
+    }
+    
     private boolean checkQuoteCondition(final Object object, final CharSequence charSeq, final boolean newRecord) {
-        boolean quote;
-        QuoteMode quoteModePolicy = getQuoteMode();
-        if (quoteModePolicy == null) {
-            quoteModePolicy = QuoteMode.MINIMAL;
+        if (charSeq.length() == 0) {
+            return newRecord;
         }
     
-        if (quoteModePolicy == QuoteMode.ALL || quoteModePolicy == QuoteMode.ALL_NON_NULL) {
-            quote = true;
-        } else if (quoteModePolicy == QuoteMode.NON_NUMERIC && !(object instanceof Number)) {
-            quote = true;
-        } else if (quoteModePolicy == QuoteMode.NONE) {
-            return false;
-        } else if (quoteModePolicy == QuoteMode.MINIMAL) {
-            if (charSeq.length() == 0) {
-                if (newRecord) {
-                    quote = true;
-                }
-            } else {
-                char c = charSeq.charAt(0);
-    
-                if (c <= Comment || c <= LF || c <= CR) {
-                    quote = true;
-                } else if (charSeq.length() > 1) {
-                    for (int pos = 1; pos < charSeq.length(); pos++) {
-                        c = charSeq.charAt(pos);
-                        if (c == getQuoteCharacter() || c == getEscapeCharacter()) {
-                            quote = true;
-                            break;
-                        }
-                    }
-                }
-            }
-    
-            if (!quote) {
-                return false;
-            }
-        } else {
-            throw new IllegalStateException("Unexpected Quote value: " + quoteModePolicy);
+        char firstChar = charSeq.charAt(0);
+        if (firstChar <= Comment || firstChar <= LF || firstChar <= CR) {
+            return true;
         }
     
-        return quote;
+        if (charSeq.length() > 1) {
+            return shouldQuote(getQuoteMode(), charSeq) || charSeq.contains(getQuoteCharacter()) || charSeq.contains(getEscapeCharacter());
+        }
+    
+        return shouldQuote(getQuoteMode(), charSeq);
     }    
     
 
