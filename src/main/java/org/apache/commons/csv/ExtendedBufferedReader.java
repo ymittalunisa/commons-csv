@@ -171,9 +171,10 @@ final class ExtendedBufferedReader extends BufferedReader {
         if (length == 0) {
             return 0;
         }
-
+    
         final int len = super.read(buf, offset, length);
-
+    
+        
         if (len > 0) {
 
             for (int i = offset; i < offset + len; i++) {
@@ -195,7 +196,12 @@ final class ExtendedBufferedReader extends BufferedReader {
 
         position += len;
         return len;
+        eolCounter += eolCount;
+        
+        position += len;
+        return len;
     }
+    
 
     /**
      * Gets the next line, dropping the line terminator(s). This method should only be called when processing a

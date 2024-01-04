@@ -248,11 +248,13 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      *             If there is a problem reading the header or skipping the first record
      * @since 1.5
      */
+    private static final String FORMAT_STRING = "format";
+
     @SuppressWarnings("resource")
     public static CSVParser parse(final InputStream inputStream, final Charset charset, final CSVFormat format)
             throws IOException {
         Objects.requireNonNull(inputStream, "inputStream");
-        Objects.requireNonNull(format, "format");
+        Objects.requireNonNull(format, FORMAT_STRING);
         return parse(new InputStreamReader(inputStream, charset), format);
     }
 
@@ -275,7 +277,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
     @SuppressWarnings("resource")
     public static CSVParser parse(final Path path, final Charset charset, final CSVFormat format) throws IOException {
         Objects.requireNonNull(path, "path");
-        Objects.requireNonNull(format, "format");
+        Objects.requireNonNull(format, FORMAT_STRING);
         return parse(Files.newInputStream(path), charset, format);
     }
 
@@ -317,7 +319,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      */
     public static CSVParser parse(final String string, final CSVFormat format) throws IOException {
         Objects.requireNonNull(string, "string");
-        Objects.requireNonNull(format, "format");
+        Objects.requireNonNull(format, FORMAT_STRING);
 
         return new CSVParser(new StringReader(string), format);
     }
@@ -346,7 +348,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
     public static CSVParser parse(final URL url, final Charset charset, final CSVFormat format) throws IOException {
         Objects.requireNonNull(url, "url");
         Objects.requireNonNull(charset, "charset");
-        Objects.requireNonNull(format, "format");
+        Objects.requireNonNull(format, FORMAT_STRING);
 
         return new CSVParser(new InputStreamReader(url.openStream(), charset), format);
     }
@@ -426,7 +428,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
     public CSVParser(final Reader reader, final CSVFormat format, final long characterOffset, final long recordNumber)
         throws IOException {
         Objects.requireNonNull(reader, "reader");
-        Objects.requireNonNull(format, "format");
+        Objects.requireNonNull(format, FORMAT_STRING);
 
         this.format = format.copy();
         this.lexer = new Lexer(format, new ExtendedBufferedReader(reader));
@@ -469,71 +471,54 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @return null if the format has no header.
      * @throws IOException if there is a problem reading the header or skipping the first record
      */
-    private Headers createHeaders() throws IOException {
-        Map<String, Integer> hdrMap = null;
-        List<String> headerNames = null;
-        final String[] formatHeader = this.format.getHeader();
-        if (formatHeader != null) {
-            hdrMap = createEmptyHeaderMap();
-            String[] headerRecord = null;
-            if (formatHeader.length == 0) {
-                // read the header from the first line of the file
-                final CSVRecord nextRecord = this.nextRecord();
-                if (nextRecord != null) {
-                    headerRecord = nextRecord.values();
-                    headerComment = nextRecord.getComment();
-                }
-            } else {
-                if (this.format.getSkipHeaderRecord()) {
-                    final CSVRecord nextRecord = this.nextRecord();
-                    if (nextRecord != null) {
-                        headerComment = nextRecord.getComment();
-                    }
-                }
-                headerRecord = formatHeader;
-            }
-
-            // build the name to index mappings
-            if (headerRecord != null) {
-                // Track an occurrence of a null, empty or blank header.
-                boolean observedMissing = false;
-                for (int i = 0; i < headerRecord.length; i++) {
-                    final String header = headerRecord[i];
-                    final boolean blankHeader = CSVFormat.isBlank(header);
-                    if (blankHeader && !this.format.getAllowMissingColumnNames()) {
-                        throw new IllegalArgumentException(
-                            "A header name is missing in " + Arrays.toString(headerRecord));
-                    }
-
-                    final boolean containsHeader = blankHeader ? observedMissing : hdrMap.containsKey(header);
-                    final DuplicateHeaderMode headerMode = this.format.getDuplicateHeaderMode();
-                    final boolean duplicatesAllowed = headerMode == DuplicateHeaderMode.ALLOW_ALL;
-                    final boolean emptyDuplicatesAllowed = headerMode == DuplicateHeaderMode.ALLOW_EMPTY;
-
-                    if (containsHeader && !duplicatesAllowed && !(blankHeader && emptyDuplicatesAllowed)) {
-                        throw new IllegalArgumentException(
-                            String.format(
-                                "The header contains a duplicate name: \"%s\" in %s. If this is valid then use CSVFormat.Builder.setDuplicateHeaderMode().",
-                                header, Arrays.toString(headerRecord)));
-                    }
-                    observedMissing |= blankHeader;
-                    if (header != null) {
-                        hdrMap.put(header, Integer.valueOf(i));
-                        if (headerNames == null) {
-                            headerNames = new ArrayList<>(headerRecord.length);
-                        }
-                        headerNames.add(header);
-                    }
-                }
-            }
+    private Map<String, Integer> createHeaders() throws IOException {
+        if (this.format.getHeader() == null) {
+            throw new IllegalArgumentException("No header specified");
         }
-        if (headerNames == null) {
-            headerNames = Collections.emptyList(); // immutable
+    
+        // Handle empty format header case
+        if (this.format.getHeader().length == 0) {
+            final CSVRecord nextRecord = nextRecord();
+            if (nextRecord == null) {
+                throw new IOException("No header record found");
+            }
+    
+            final String[] headerRecord = nextRecord.values();
+            headerComment = nextRecord.getComment();
+            return createHeaderMap(headerRecord);
         } else {
-            headerNames = Collections.unmodifiableList(headerNames);
+            // Parse header line
+            final String[] headerRecord = this.format.getHeader();
+            headerComment = null;
+    
+            // Handle null, empty, or blank headers
+            if (!validateHeaders(headerRecord)) {
+                throw new IllegalArgumentException("Invalid header");
+            }
+    
+            // Map header names to indices
+            return createHeaderMap(headerRecord);
         }
-        return new Headers(hdrMap, headerNames);
     }
+    
+    private boolean validateHeaders(final String[] headerRecord) {
+        for (final String header : headerRecord) {
+            if (header == null || header.trim().isEmpty()) {
+                return false;
+            }
+        }
+    
+        return true;
+    }
+    
+    private Map<String, Integer> createHeaderMap(final String[] headerRecord) {
+        final Map<String, Integer> hdrMap = new HashMap<>(headerRecord.length);
+        for (int i = 0; i < headerRecord.length; i++) {
+            hdrMap.put(headerRecord[i], Integer.valueOf(i));
+        }
+    
+        return hdrMap;
+    }    
 
     /**
      * Gets the current line number in the input stream.
