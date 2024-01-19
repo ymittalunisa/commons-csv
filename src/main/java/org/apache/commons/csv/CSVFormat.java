@@ -1527,15 +1527,15 @@ public final class CSVFormat implements Serializable {
         validate();
     }
 
-    private void append(final char c, final Appendable appendable) throws IOException {
+    private void append(final CharSequence escape, final Appendable appendable) throws IOException {
         //try {
-            appendable.append(c);
+            appendable.append(escape);
         //} catch (final IOException e) {
         //    throw new UncheckedIOException(e);
         //}
     }
 
-    private void append(final CharSequence csq, final Appendable appendable) throws IOException {
+    private void append(final CharSequence csq, int start, int pos, final Appendable appendable) throws IOException {
         //try {
             appendable.append(csq);
         //} catch (final IOException e) {
@@ -2149,9 +2149,10 @@ public final class CSVFormat implements Serializable {
                 appendable.append(escape); // append escape character
                 appendable.append(c); // append the current character
     
+                boolean isDelimiterStart=false;
                 if (isDelimiterStart) {
                     // handle multiple consecutive delimiters
-                    while (++pos < end && isDelimiter(charSeq.charAt(pos), delim, delimLength)) {
+                    while (++pos < end && isDelimiter(delimiter, charSeq.charAt(pos), delim, delimLength)) {
                         appendable.append(escape);
                         appendable.append(charSeq.charAt(pos));
                     }
@@ -2178,6 +2179,7 @@ public final class CSVFormat implements Serializable {
         final char escape = getEscapeCharacter().charValue();
         final StringBuilder builder = new StringBuilder();
     
+        int c;
         while (-1 != (c = bufferedReader.read())) {
             builder.append((char) c);
     
@@ -2185,7 +2187,7 @@ public final class CSVFormat implements Serializable {
                 case CR:
                 case LF:
                 case escape:
-                case isDelimiter(builder.toString()):
+                case isDelimiter(escape, builder.toString(), pos, delim, pos):
                     // write out segment up until this char
                     if (pos > start) {
                         writeSegment(appendable, builder, start, pos);
@@ -2199,7 +2201,7 @@ public final class CSVFormat implements Serializable {
                         writeEscapedCharacter(appendable, 'r');
                     } else if (c == escape) {
                         writeEscapedCharacter(appendable, 't');
-                    } else if (isDelimiter(builder.toString())) {
+                    } else if (isDelimiter(escape, builder.toString(), c, delim, c)) {
                         for (int i = 1; i < delim.length; i++) {
                             writeEscapedCharacter(appendable, bufferedReader.read());
                         }
@@ -2218,11 +2220,17 @@ public final class CSVFormat implements Serializable {
         }
     }
     
-    private void writeEscapedCharacter(final Appendable appendable, final char c) throws IOException {
+    private void writeEscapedCharacter(final Appendable appendable, final int i) throws IOException {
+        CharSequence escape;
         append(escape, appendable);
-        append(c, appendable);
+        append(i, appendable);
     }
     
+    private void append(int i, Appendable appendable) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'append'");
+    }
+
     private void writeSegment(final Appendable appendable, final StringBuilder builder, final int start, final int pos) throws IOException {
         append(builder, start, pos, appendable);
     }
@@ -2266,18 +2274,19 @@ public final class CSVFormat implements Serializable {
                 quoteModePolicy == QuoteMode.NON_NUMERIC && !(charSeq instanceof Number);
     }
     
-    private boolean checkQuoteCondition(final CharSequence charSeq, final boolean newRecord) {
+    private boolean checkQuoteCondition(Object object, final CharSequence charSeq, final boolean newRecord) {
         if (charSeq.length() == 0) {
             return newRecord;
         }
     
         char firstChar = charSeq.charAt(0);
+        char Comment;
         if (firstChar <= Comment || firstChar <= LF || firstChar <= CR) {
             return true;
         }
     
         if (charSeq.length() > 1) {
-            return shouldQuote(getQuoteMode(), charSeq) || charSeq.contains(getQuoteCharacter()) || charSeq.contains(getEscapeCharacter());
+            return shouldQuote(getQuoteMode(), charSeq) || ((Charset) charSeq).contains(getQuoteCharacter()) || charSeq.contains(getEscapeCharacter());
         }
     
         return shouldQuote(getQuoteMode(), charSeq);
@@ -2328,6 +2337,11 @@ public final class CSVFormat implements Serializable {
         }
 
         append(quote, appendable);
+    }
+
+    private void append(char quote, Appendable appendable) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'append'");
     }
 
     @Override
@@ -2398,9 +2412,9 @@ public final class CSVFormat implements Serializable {
             throw new IllegalArgumentException("The delimiter cannot be a line break");
         }
     
-        validateDelimiter(delimiter);
+        withDelimiter(delimiter);
         validateQuoteCharacter(quoteCharacter, quoteMode);
-        validateEscapeCharacter(escapeCharacter, quoteCharacter);
+        validateQuoteCharacter(escapeCharacter, quoteCharacter);
         validateCommentMarker(commentMarker, escapeCharacter, quoteCharacter);
     
         if (escapeCharacter == null && quoteMode == QuoteMode.NONE) {
@@ -2423,6 +2437,22 @@ public final class CSVFormat implements Serializable {
             }
         }
     }    
+
+    private void validateQuoteCharacter(Character escapeCharacter2, Character quoteCharacter2) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'validateQuoteCharacter'");
+    }
+
+    private void validateCommentMarker(Character commentMarker2, Character escapeCharacter2,
+            Character quoteCharacter2) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'validateCommentMarker'");
+    }
+
+    private void validateQuoteCharacter(Character quoteCharacter2, QuoteMode quoteMode2) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'validateQuoteCharacter'");
+    }
 
     /**
      * Builds a new {@code CSVFormat} that allows duplicate header names.
@@ -2523,14 +2553,14 @@ public final class CSVFormat implements Serializable {
     /**
      * Builds a new {@code CSVFormat} with the delimiter of the format set to the specified character.
      *
-     * @param delimiter the delimiter character
+     * @param c the delimiter character
      * @return A new CSVFormat that is equal to this with the specified character as a delimiter
      * @throws IllegalArgumentException thrown if the specified character is a line break
      * @deprecated Use {@link Builder#setDelimiter(char)}
      */
     @Deprecated
-    public CSVFormat withDelimiter(final char delimiter) {
-        return builder().setDelimiter(delimiter).build();
+    public CSVFormat withDelimiter(final char c) {
+        return builder().setDelimiter(c).build();
     }
 
     /**
@@ -2978,5 +3008,10 @@ public final class CSVFormat implements Serializable {
     @Deprecated
     public CSVFormat withTrim(final boolean trim) {
         return builder().setTrim(trim).build();
+    }
+
+    public CSVFormat withDelimiter(char c) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'withDelimiter'");
     }
 }

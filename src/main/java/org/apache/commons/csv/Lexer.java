@@ -320,7 +320,7 @@ final class Lexer implements Closeable {
         token.isQuoted = true;
         // Save current line number in case needed for IOE
         final long startLineNumber = getCurrentLineNumber();
-        int c;
+        int c=0;
     
         while (true) {
             if (isEscape(c)) {

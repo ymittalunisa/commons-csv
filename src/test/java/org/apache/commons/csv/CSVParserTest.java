@@ -20,6 +20,7 @@ package org.apache.commons.csv;
 import static org.apache.commons.csv.Constants.CR;
 import static org.apache.commons.csv.Constants.CRLF;
 import static org.apache.commons.csv.Constants.LF;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -429,7 +430,7 @@ public class CSVParserTest {
     @Test
     public void testDuplicateHeadersAllowedByDefault() throws Exception {
         try (CSVParser parser = CSVParser.parse("a,b,a\n1,2,3\nx,y,z", CSVFormat.DEFAULT.withHeader())) {
-            final Map<String, Integer> headers = parser.getHeaderNames();
+            final Map<String, Integer> headers = (Map<String, Integer>) parser.getHeaderNames();
             // Assert that the header mapping has the expected values
             assertEquals(3, headers.size());
             assertTrue(headers.containsKey("a"));
@@ -1006,6 +1007,16 @@ public class CSVParserTest {
             assertThat(secondRecord.get(3), is("4"));
             assertThat(secondRecord.get(4), is("5"));
         }
+    }
+
+    private void assertThat(String reason, Object object) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'assertThat'");
+    }
+
+    private Object is(String string) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'is'");
     }
 
     @Test

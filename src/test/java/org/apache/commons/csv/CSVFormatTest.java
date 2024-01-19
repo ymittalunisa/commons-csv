@@ -21,6 +21,7 @@ import static org.apache.commons.csv.CSVFormat.RFC4180;
 import static org.apache.commons.csv.Constants.CR;
 import static org.apache.commons.csv.Constants.CRLF;
 import static org.apache.commons.csv.Constants.LF;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -795,7 +796,12 @@ public class CSVFormatTest {
     public void testJiraCsv236() {
         CSVFormat.DEFAULT.builder().setAllowDuplicateHeaderNames(true).setHeader("CC", "VV", "VV").build();
         // Assert that the expected header names are present
-        assertThat(CSVFormat.DEFAULT.builder().build().getHeader()).containsExactly("CC", "VV", "VV");
+        ((Object) assertThat(CSVFormat.DEFAULT.builder().build().getHeader())).containsExactly("CC", "VV", "VV");
+    }
+
+    private Object assertThat(String string) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'assertThat'");
     }
 
     @SuppressWarnings("deprecation")
@@ -803,7 +809,7 @@ public class CSVFormatTest {
     public void testJiraCsv236__Deprecated() {
         CSVFormat.DEFAULT.withAllowDuplicateHeaderNames().withHeader("CC", "VV", "VV");
         // Assert that the expected header names are present
-        assertThat(CSVFormat.DEFAULT.withAllowDuplicateHeaderNames().withHeader("CC", "VV", "VV").getHeader()).containsExactly("CC", "VV", "VV");
+        ((Object) assertThat(CSVFormat.DEFAULT.withAllowDuplicateHeaderNames().withHeader("CC", "VV", "VV").getHeader())).containsExactly("CC", "VV", "VV");
     }
 
 
@@ -1051,7 +1057,7 @@ public class CSVFormatTest {
     @Test
     public void testToStringAndWithCommentMarkerTakingCharacter() {
 
-        final CSVFormat.Predefined csvFormat_Predefined = CSVFormat.Predefined.Default;
+        final CSVFormat.Predefined csvFormat_Predefined = CSVFormat.Predefined.DEFAULT;
         final CSVFormat csvFormat = csvFormat_Predefined.getFormat();
 
         assertNull(csvFormat.getEscapeCharacter());
