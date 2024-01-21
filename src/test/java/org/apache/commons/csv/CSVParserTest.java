@@ -1361,7 +1361,7 @@ import java.io.File;
          }
      }
      @Test
-     public void testParseWithQuoteThrowsException() throws IOException {
+     void testParseWithQuoteThrowsException() throws IOException {
      final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\'');
 
      // Parse a CSV string that should throw an IOException
