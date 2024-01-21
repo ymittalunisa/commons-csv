@@ -27,8 +27,9 @@
  import static org.junit.jupiter.api.Assertions.assertNull;
  import static org.junit.jupiter.api.Assertions.assertThrows;
  import static org.junit.jupiter.api.Assertions.assertTrue;
- 
- import java.io.File;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.io.File;
  import java.io.IOException;
  import java.io.InputStreamReader;
  import java.io.PipedReader;
@@ -1361,22 +1362,27 @@
      }
      @Test
      public void testParseWithQuoteThrowsException() throws IOException {
-        final CSVFormat csvFormat = CSVFormat.DEFAULT.withQuote('\'');
-    
+     final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\'');
+
+     // Parse a CSV string that should throw an IOException
+     parseAndThrowException(csvFormat, new StringReader("'a,b,c','"));
+ 
+     // Parse another CSV string that should throw an IOException
+     parseAndThrowException(csvFormat, new StringReader("'a,b,c'abc,xyz"));
+ 
+     // Parse another CSV string that should throw an IOException
+     parseAndThrowException(csvFormat, new StringReader("'abc'a,b,c',xyz"));
+     }
+
+     private void parseAndThrowException(CSVFormat csvFormat, Reader reader) throws IOException {
         try {
-            csvFormat.parse(new StringReader("'a,b,c','")).nextRecord();
+            csvFormat.parse(reader).nextRecord();
+            fail("Expected an IOException");
         } catch (IOException e) {
-            assertThrows(IOException.class, () -> {
-                csvFormat.parse(new StringReader("'a,b,c'abc,xyz")).nextRecord();
-            });
-    
-            assertThrows(IOException.class, () -> {
-                csvFormat.parse(new StringReader("'abc'a,b,c',xyz")).nextRecord();
-            });
-    
-            throw e; // Rethrow the original exception
+            throw e;
         }
-    }
+     }
+
     
      @Test
      public void testParseWithQuoteWithEscape() throws IOException {
