@@ -1375,14 +1375,22 @@ import java.io.File;
      }
 
      private void parseAndThrowException(CSVFormat csvFormat, Reader reader) throws IOException {
+        boolean exceptionOccurred = false;
+    
         try {
             csvFormat.parse(reader).nextRecord();
-            fail("Expected an IOException");
         } catch (IOException e) {
-            throw e;
+            exceptionOccurred = true;
         }
-     }
-
+    
+        if (!exceptionOccurred) {
+            fail("Expected an IOException");
+        }
+    
+        if (!exceptionOccurred) {
+            throw new AssertionError("Expected an IOException to be thrown");
+        }
+    }
     
      @Test
      public void testParseWithQuoteWithEscape() throws IOException {
