@@ -1360,12 +1360,24 @@
          }
      }
      @Test
-     public void testParseWithQuoteThrowsException() {
-         final CSVFormat csvFormat = CSVFormat.DEFAULT.withQuote('\'');
-         assertThrows(IOException.class, () -> csvFormat.parse(new StringReader("'a,b,c','")).nextRecord());
-         assertThrows(IOException.class, () -> csvFormat.parse(new StringReader("'a,b,c'abc,xyz")).nextRecord());
-         assertThrows(IOException.class, () -> csvFormat.parse(new StringReader("'abc'a,b,c',xyz")).nextRecord());
-     }
+     public void testParseWithQuoteThrowsException() throws IOException {
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.withQuote('\'');
+    
+        try {
+            csvFormat.parse(new StringReader("'a,b,c','")).nextRecord();
+        } catch (IOException e) {
+            assertThrows(IOException.class, () -> {
+                csvFormat.parse(new StringReader("'a,b,c'abc,xyz")).nextRecord();
+            });
+    
+            assertThrows(IOException.class, () -> {
+                csvFormat.parse(new StringReader("'abc'a,b,c',xyz")).nextRecord();
+            });
+    
+            throw e; // Rethrow the original exception
+        }
+    }
+    
      @Test
      public void testParseWithQuoteWithEscape() throws IOException {
          final String source = "'a?,b?,c?d',xyz";
