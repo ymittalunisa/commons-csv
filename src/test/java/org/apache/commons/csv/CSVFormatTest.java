@@ -149,6 +149,10 @@
      @Test
      public void testDuplicateHeaderElementsTrue_Deprecated() {
          CSVFormat.DEFAULT.withAllowDuplicateHeaderNames(true).withHeader("A", "A");
+         // Assert that the header contains duplicate elements
+         Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            CSVFormat.DEFAULT.withAllowDuplicateHeaderNames(true).withHeader("A", "A");
+         });
      }
  
      @Test
@@ -159,7 +163,11 @@
      @Test
      public void testDuplicateHeaderElementsTrueContainsEmpty2() {
          CSVFormat.DEFAULT.builder().setDuplicateHeaderMode(DuplicateHeaderMode.ALLOW_EMPTY).setHeader("A", "", "B", "").build();
-     }
+         // Assert that the header contains empty entries
+         Assertions.assertThrows(IllegalArgumentException.class, () -> {
+          CSVFormat.DEFAULT.builder().setDuplicateHeaderMode(DuplicateHeaderMode.ALLOW_EMPTY).setHeader("A", "", "B", "");
+         });
+    }
  
      @Test
      public void testDuplicateHeaderElementsTrueContainsEmpty3() {

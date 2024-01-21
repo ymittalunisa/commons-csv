@@ -813,7 +813,7 @@
          /**
           * @see CSVFormat#DEFAULT
           */
-         DEFAULT(CSVFormat.DEFAULT),
+         Default(CSVFormat.DEFAULT),
  
          /**
           * @see CSVFormat#EXCEL
