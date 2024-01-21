@@ -196,10 +196,6 @@ final class ExtendedBufferedReader extends BufferedReader {
 
         position += len;
         return len;
-        eolCounter += eolCount;
-        
-        position += len;
-        return len;
     }
     
 
