@@ -818,52 +818,52 @@
          /**
           * @see CSVFormat#EXCEL
           */
-         EXCEL(CSVFormat.EXCEL),
+         Excel(CSVFormat.EXCEL),
  
          /**
           * @see CSVFormat#INFORMIX_UNLOAD
           * @since 1.3
           */
-         INFORMIX_UNLOAD(CSVFormat.INFORMIX_UNLOAD),
+         InformixUnload(CSVFormat.INFORMIX_UNLOAD),
  
          /**
           * @see CSVFormat#INFORMIX_UNLOAD_CSV
           * @since 1.3
           */
-         INFORMIX_UNLOAD_CSV(CSVFormat.INFORMIX_UNLOAD_CSV),
+          InformixUnloadCsv(CSVFormat.INFORMIX_UNLOAD_CSV),
  
          /**
           * @see CSVFormat#MONGODB_CSV
           * @since 1.7
           */
-         MONGODB_CSV(CSVFormat.MONGODB_CSV),
+          MongoDBCsv(CSVFormat.MONGODB_CSV),
  
          /**
           * @see CSVFormat#MONGODB_TSV
           * @since 1.7
           */
-         MONGODB_TSV(CSVFormat.MONGODB_TSV),
+          MongoDBTsv(CSVFormat.MONGODB_TSV),
  
          /**
           * @see CSVFormat#MYSQL
           */
-         MYSQL(CSVFormat.MYSQL),
+         MySQL(CSVFormat.MYSQL),
  
          /**
           * @see CSVFormat#ORACLE
           */
-         ORACLE(CSVFormat.ORACLE),
+         Oracle(CSVFormat.ORACLE),
  
          /**
           * @see CSVFormat#POSTGRESQL_CSV
           * @since 1.5
           */
-         POSTGRESQL_CSV(CSVFormat.POSTGRESQL_CSV),
+         PostgreSQLCsv(CSVFormat.POSTGRESQL_CSV),
  
          /**
           * @see CSVFormat#POSTGRESQL_CSV
           */
-         POSTGRESQL_TEXT(CSVFormat.POSTGRESQL_TEXT),
+         PostgreSQLText(CSVFormat.POSTGRESQL_TEXT),
  
          /**
           * @see CSVFormat#RFC4180
